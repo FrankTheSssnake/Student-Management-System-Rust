@@ -1,7 +1,5 @@
 use std::io::{self, Write};
 
-static mut COUNT: i32 = 0;
-
 pub struct Student {
     id: i32,
     name: String,
@@ -88,7 +86,7 @@ fn read_name() -> Result<String, String> {
     let mut name: String = String::new();
     io::stdin().read_line(&mut name).unwrap();
 
-    name = name.trim();
+    name = name.trim().to_string();
 
     if name.chars().all(|c| c.is_alphabetic() || c == '\n' || c == ' ') {
         Ok(name)
@@ -143,10 +141,6 @@ pub fn add_student(students: &mut Vec<Student>) {
 
     students.push(new_student);
 
-    unsafe {
-        COUNT += 1;
-    }
-
     students.sort_by_key(|s| s.id);
 }
 
@@ -155,9 +149,6 @@ pub fn delete_student(students: &mut Vec<Student>) {
     match search_by_id(students) {
         Ok(i) => {
             students.remove(i);
-            unsafe {
-                COUNT -= 1;
-            }
             students.sort_by_key(|s| s.id);
         },
 
