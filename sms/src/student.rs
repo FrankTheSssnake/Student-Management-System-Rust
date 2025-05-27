@@ -1,4 +1,8 @@
 use std::io::{self, Write};
+use std::cell::RefCell;
+
+use crate::extra::NO_OF_COLUMNS;
+use crate::extra::WIDTHS;
 
 pub struct Student {
     id: i32,
@@ -6,9 +10,41 @@ pub struct Student {
     marks: f32,
 }
 
-fn update_widths(student: &Student) {}
+fn update_widths(student: &Student, widths: &RefCell<[usize; NO_OF_COLUMNS]>) {
 
-pub fn format_entry(student: &Student) -> String {}
+    let mut len: f64;
+    let mut new_widths: [usize; NO_OF_COLUMNS] = *widths.borrow();
+
+    len = (student.id as f64).log10();
+    if len > new_widths[0] as f64 {
+        new_widths[0] = len as usize + 1 as usize;
+    }
+
+    len = student.name.len() as f64;
+    if len > new_widths[1] as f64 {
+        new_widths[1] = len as usize + 1 as usize;
+    }
+    
+    len = (student.marks as f64).log10() + 3 as f64;
+    if len > new_widths[2] as f64 {
+        new_widths[2] = len as usize + 1 as usize;
+    }
+
+}
+
+pub fn format_entry(student: &Student) -> String {
+
+    let widths: [usize; NO_OF_COLUMNS] = WIDTHS.with(|w| *w.borrow());
+
+    format!("{:<x$} | {:<y$} | {:<z$}\n", 
+        student.id,
+        student.name,
+        student.marks,
+        x = widths[0],
+        y = widths[1],
+        z = widths[2]
+    )
+}
 
 pub fn display_students(students: &[Student]) {
     for student in students {
@@ -19,7 +55,11 @@ pub fn display_students(students: &[Student]) {
 fn search_by_id(students: &[Student]) -> Result<usize, String> {
     let id: i32 = read_id()?;
 
-    students.iter().enumerate().find(|(_, s)| s.id == id).map(|(i, _)| i).ok_or_else(|| "Student not found.".to_string())
+    students.iter()
+        .enumerate()
+        .find(|(_, s)| s.id == id)
+        .map(|(i, _)| i)
+        .ok_or_else(|| "Student not found.".to_string())
 }
 
 
@@ -27,7 +67,11 @@ fn search_by_id(students: &[Student]) -> Result<usize, String> {
 fn search_by_name(students: &[Student]) -> Result<usize, String> {
     let name: String = read_name()?;
 
-    students.iter().enumerate().find(|(_, s)| s.name == name).map(|(i, _)| i).ok_or_else(|| "Student not found.".to_string())
+    students.iter()
+        .enumerate()
+        .find(|(_, s)| s.name == name)
+        .map(|(i, _)| i)
+        .ok_or_else(|| "Student not found.".to_string())
 }
 
 pub fn search_student(students: &[Student]) {
@@ -131,17 +175,22 @@ fn read_student() -> Result<Student, String> {
 
 pub fn add_student(students: &mut Vec<Student>) {
 
-    let new_student: Student = match read_student() {
-        Ok(std) => std,
+    match read_student() {
+        Ok(new_student) => {
+            WIDTHS.with(|w| update_widths(&new_student, w));
+
+            students.push(new_student);
+            
+            students.sort_by_key(|s| s.id);
+
+        },
+
         Err(err) => {
            eprintln!("{}\nStudent record could not be added.", err);
            return;
-        },
-    };
+        }
+    }
 
-    students.push(new_student);
-
-    students.sort_by_key(|s| s.id);
 }
 
 pub fn delete_student(students: &mut Vec<Student>) {
@@ -192,5 +241,7 @@ pub fn update_student(students: &mut Vec<Student>) {
 
     students[index].name = name;
     students[index].marks = marks;
+
+    WIDTHS.with(|w| update_widths(&students[index], w));
 }
 
