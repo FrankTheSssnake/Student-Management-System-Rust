@@ -1,6 +1,8 @@
 use std::io::Write;
 use std::fs::File;
 use std::cell::RefCell;
+use regex::Regex;
+
 
 pub const NO_OF_COLUMNS: usize = 3;
 
@@ -11,11 +13,38 @@ thread_local! {
 }
 
 
-// TODO
+fn get_pattern() -> String {
+    
+    let mut pattern: String = String::from("^");
 
-fn get_pattern() -> String {}
+    for header in &HEADERS {
+        pattern.push_str(header);
+        pattern.push_str("(\\s*)\\| ");
+    }
 
-pub fn calculate_widths(header: &String) {}
+    pattern.truncate(pattern.len() - 3);
+    pattern.push_str("$");
+
+    pattern
+}
+
+pub fn calculate_widths(header: &str) {
+    let pattern: String = get_pattern();
+
+    let re = Regex::new(pattern.as_str()).expect("Internal Error: Could not compile regex.\n");
+
+    let captures = re.captures(header).expect("Internal Error: Regex failed to match header.");
+
+    WIDTHS.with(|widths| {
+        let mut widths = widths.borrow_mut();
+
+        for i in 0..NO_OF_COLUMNS {
+            if let Some(m) = captures.get(i + 1) {
+                widths[i] = m.end() - m.start() + HEADERS[i].len() - 1;
+            }
+        }
+    });
+}
 
 fn format_header(widths: &[usize; NO_OF_COLUMNS]) -> String {
     
@@ -25,7 +54,7 @@ fn format_header(widths: &[usize; NO_OF_COLUMNS]) -> String {
         output.push_str(format!("{:<width$} | ", HEADERS[i], width = widths[i]).as_str());
     }
 
-    output.truncate(output.len() - 3);
+    output.truncate(output.len() - 2);
 
     output
 }
@@ -45,6 +74,6 @@ pub fn fprint_head(file: &mut File) {
     let header: String = format_header(&widths);
     let seperator: String = format_seperator(&widths);
 
-    write!(file, "{}\n{}\n", header, seperator);
+    write!(file, "{}\n{}\n", header, seperator).expect("Failed to write to file.");
 
 }

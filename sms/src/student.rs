@@ -5,9 +5,9 @@ use crate::extra::NO_OF_COLUMNS;
 use crate::extra::WIDTHS;
 
 pub struct Student {
-    id: i32,
-    name: String,
-    marks: f32,
+    pub id: i32,
+    pub name: String,
+    pub marks: f32,
 }
 
 fn update_widths(student: &Student, widths: &RefCell<[usize; NO_OF_COLUMNS]>) {
